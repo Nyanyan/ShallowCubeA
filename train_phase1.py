@@ -17,9 +17,9 @@ from basic_functions import *
 
 n_data = 20000
 val_ratio = 0.2
-max_depth = 12
-ln_moves = 14
-move_translate = [0, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 17]
+max_depth = 18
+ln_moves = 10
+move_translate = [1, 4, 6, 7, 8, 9, 10, 11, 13, 16]
 n_epochs = 50
 input_shape = (2,)
 
@@ -36,8 +36,8 @@ solved_stickers = []
 for i in range(6):
     solved_stickers.extend([i for _ in range(9)])
 solved_cp, solved_co, solved_ep, solved_eo = sticker2arr(solved_stickers)
-solved = [co2idx(solved_co), eo2idx(solved_eo), ep2idx_phase0(solved_ep)]
-#solved_phase1 = [cp2idx(solved_cp), ep2idx_phase1_1(solved_ep), ep2idx_phase1_2(solved_ep)]
+#solved = [co2idx(solved_co), eo2idx(solved_eo), ep2idx_phase0(solved_ep)]
+solved = [cp2idx(solved_cp), ep2idx_phase1_1(solved_ep), ep2idx_phase1_2(solved_ep)]
 
 def read_file(filename, a, b):
     res = []
@@ -55,11 +55,11 @@ def read_file_dim1(filename, a):
             res.append(int(f.readline()))
     return res
 
-trans_co = read_file('trans_table/trans_co.txt', 2187, ln_moves)
-trans_eo = read_file('trans_table/trans_eo.txt', 2048, ln_moves)
-trans_ep_phase0 = read_file('trans_table/trans_ep_phase0.txt', 495, ln_moves)
-prune_phase0_co_ep = read_file('prune_table/prune_phase0_co_ep.txt', 495, 2187)
-prune_phase0_eo_ep = read_file('prune_table/prune_phase0_eo_ep.txt', 495, 2048)
+trans_cp = read_file('trans_table/trans_cp.txt', 40320, ln_moves)
+trans_ep_phase1_1 = read_file('trans_table/trans_ep_phase1_1.txt', 40320, ln_moves)
+trans_ep_phase1_2 = read_file('trans_table/trans_ep_phase1_2.txt', 24, ln_moves)
+prune_phase1_cp_ep = read_file('prune_table/prune_phase1_cp_ep.txt', 24, 40320)
+prune_phase1_ep_ep = read_file('prune_table/prune_phase1_ep_ep.txt', 24, 40320)
 #prune_phase0_co = read_file_dim1('prune_table/prune_phase0_co.txt', 2187)
 #prune_phase0_eo = read_file_dim1('prune_table/prune_phase0_eo.txt', 2048)
 #prune_phase0_ep = read_file_dim1('prune_table/prune_phase0_ep.txt', 495)
@@ -83,8 +83,8 @@ def collect_data(num):
             move = randint(0, ln_moves - 1)
             while illegal_move(move, last_move):
                 move = randint(0, ln_moves - 1)
-            idxes = [trans_co[idxes[0]][move], trans_eo[idxes[1]][move], trans_ep_phase0[idxes[2]][move]]
-            all_data.append([[prune_phase0_co_ep[idxes[2]][idxes[0]], prune_phase0_eo_ep[idxes[2]][idxes[1]]], i, [elem for elem in idxes]])
+            idxes = [trans_cp[idxes[0]][move], trans_ep_phase1_1[idxes[1]][move], trans_ep_phase1_2[idxes[2]][move]]
+            all_data.append([[prune_phase1_cp_ep[idxes[2]][idxes[0]], prune_phase1_ep_ep[idxes[2]][idxes[1]]], i, [elem for elem in idxes]])
             last_move = move
     shuffle(all_data)
     res_data = np.array([i[0] for i in all_data])
@@ -113,17 +113,15 @@ print(val_data.shape, val_labels.shape)
 def LeakyReLU(x):
     return tf.math.maximum(0.01 * x, x)
 
-'''
-model = load_model('param/phase0_model.h5')
+model = load_model('param/phase1_model.h5')
 prediction = model.predict(train_data[0:10])
 for i in range(10):
     print(train_idxes[i])
     print(train_data[i])
-    print(prediction[i][0]* 12)
-    print(train_labels[i] * 12)
+    print(prediction[i][0]* 18)
+    print(train_labels[i] * 18)
     print('')
 exit()
-'''
 
 x = Input(shape=input_shape)
 hidden = Dense(8)(x)
@@ -139,20 +137,20 @@ model.compile(loss='mse', optimizer='adam', metrics=['mae'])
 print(model.evaluate(train_data, train_labels))
 early_stop = EarlyStopping(monitor='val_loss', patience=10)
 history = model.fit(train_data, train_labels, epochs=n_epochs, validation_data=(val_data, val_labels), callbacks=[early_stop])
-with open('param/phase0_mean.txt', 'w') as f:
+with open('param/phase1_mean.txt', 'w') as f:
     for i in mean:
         f.write(str(i) + '\n')
-with open('param/phase0_std.txt', 'w') as f:
+with open('param/phase1_std.txt', 'w') as f:
     for i in std:
         f.write(str(i) + '\n')
-model.save('param/phase0_model.h5')
+model.save('param/phase1_model.h5')
 
 for key in ['loss', 'val_loss']:
     plt.plot(history.history[key], label=key)
 plt.xlabel('epoch')
 plt.ylabel('loss')
 plt.legend(loc='best')
-plt.savefig('graph/phase0_loss.png')
+plt.savefig('graph/phase1_loss.png')
 plt.clf()
 
 for key in ['mae', 'val_mae']:
@@ -160,7 +158,7 @@ for key in ['mae', 'val_mae']:
 plt.xlabel('epoch')
 plt.ylabel('mae')
 plt.legend(loc='best')
-plt.savefig('graph/phase0_mae.png')
+plt.savefig('graph/phase1_mae.png')
 plt.clf()
 
 
