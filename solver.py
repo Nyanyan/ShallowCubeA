@@ -9,6 +9,8 @@ model_phase1 = load_model('param/phase1.h5')
 
 c_predict = 1.0
 
+edges = [1, 3, 5, 7, 10, 12, 14, 16, 19, 21, 23, 25, 28, 30, 32, 34, 37, 39, 41, 43, 46, 48, 50, 52]
+
 def one_hot_phase0(arr):
     res = []
     for i in range(54):
@@ -16,7 +18,7 @@ def one_hot_phase0(arr):
             res.append(1.0)
         else:
             res.append(0.0)
-    for i in (1, 3, 5, 7, 10, 12, 14, 16, 19, 21, 23, 25, 28, 30, 32, 34, 37, 39, 41, 43, 46, 48, 50, 52):
+    for i in edges:
         if arr[i] == 1 or arr[i] == 3:
             res.append(1.0)
         else:
@@ -152,7 +154,6 @@ def solver(stickers):
         print(*[twists_notation[i] for i in solution])
         for twist in solution:
             stickers = move_sticker(stickers, twist)
-    print(stickers)
     return res
     solutions = phase1(stickers)
     for solution in solutions:
