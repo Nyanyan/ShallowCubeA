@@ -10,6 +10,7 @@ model_phase1 = load_model('param/phase1.h5')
 c_predict = 1.0
 
 edges = [1, 3, 5, 7, 10, 12, 14, 16, 19, 21, 23, 25, 28, 30, 32, 34, 37, 39, 41, 43, 46, 48, 50, 52]
+phase1_move_candidate = [1, 4, 6, 7, 8, 9, 10, 11, 13, 16]
 
 def one_hot_phase0(arr):
     res = []
@@ -27,8 +28,8 @@ def one_hot_phase0(arr):
 
 def one_hot_phase1(arr):
     res = []
-    for color in [1, 5]:
-        for i in range(9):
+    for color in [0, 5]:
+        for i in range(0, 9):
             if arr[i] == color:
                 res.append(1.0)
             else:
@@ -38,7 +39,7 @@ def one_hot_phase1(arr):
                 res.append(1.0)
             else:
                 res.append(0.0)
-    for color in range(1, 5):
+    for color in [1, 2, 3, 4]:
         for i in range(9, 45):
             if arr[i] == color:
                 res.append(1.0)
@@ -87,6 +88,8 @@ def phase0(stickers):
     print('raw', stickers)
     print('input', one_hot_phase0(stickers))
     dis = distance_phase0([one_hot_phase0(stickers)])[0]
+    if dis == 0:
+        return[]
     print(dis)
     heappush(que, [0 + c_predict * dis, stickers, []])
     while que:
@@ -115,19 +118,21 @@ def phase0(stickers):
 def phase1(stickers):
     res = []
     que = []
+    print('raw', stickers)
+    print('input', one_hot_phase1(stickers))
     dis = distance_phase1([one_hot_phase1(stickers)])[0]
+    if dis == 0:
+        return []
     print(dis)
     heappush(que, [0 + c_predict * dis, stickers, []])
     while que:
-        print(len(que))
-        min_dis = 10000
+        #print(len(que))
         elems = []
         predict_data = []
-        for _ in range(100):
+        for _ in range(200):
             if que:
                 dis, st, sol = heappop(que)
-                min_dis = min(min_dis, dis)
-                for mov in (1, 4, 6, 7, 8, 9, 10, 11, 13, 16):
+                for mov in phase1_move_candidate:
                     if sol and face(sol[-1]) == face(mov):
                         continue
                     if sol and axis(sol[-1]) == axis(mov) and mov < sol[-1]:
@@ -154,12 +159,14 @@ def solver(stickers):
         print(*[twists_notation[i] for i in solution])
         for twist in solution:
             stickers = move_sticker(stickers, twist)
-    return res
+        res.extend(solution)
+    print(stickers)
     solutions = phase1(stickers)
     for solution in solutions:
         print(*[twists_notation[i] for i in solution])
         for twist in solution:
             stickers = move_sticker(stickers, twist)
+        res.extend(solution)
     print(stickers)
     return res
 '''
@@ -243,6 +250,7 @@ for notation in "L B2 L2 D2 B L2 F' U2 R2 U2 F2 R2 U' F L2 B' D U2 R U2".split()
 print(state)
 
 strt = time()
-solver(state)
+solution = solver(state)
+print(*[twists_notation[i] for i in solution])
 elapsed = time() - strt
 print('time', elapsed, 'sec')
