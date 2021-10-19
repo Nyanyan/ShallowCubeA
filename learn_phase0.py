@@ -24,7 +24,30 @@ min_move = 1
 max_move = 12
 n_moves = 18
 
+'''
+sticker numbering
+              U
+           0  1  2
+           3  4  5
+           6  7  8
+    L         F         R         B
+36 37 38   9 10 11  18 19 20  27 28 29
+39 40 41  12 13 14  21 22 23  30 31 32
+42 43 44  15 16 17  24 25 26  33 34 35
+              D
+          45 46 47
+          48 49 50
+          51 52 53
+'''
+
 edges = [1, 3, 5, 7, 10, 12, 14, 16, 19, 21, 23, 25, 28, 30, 32, 34, 37, 39, 41, 43, 46, 48, 50, 52]
+edge_pair_small = [28, 37, 19, 10, 7, 41, 21, 46, 5, 14, 30, 50, 1, 23, 39, 52, 3, 32, 12, 48, 16, 43, 25, 34]
+
+edge_pair = [-1 for _ in range(54)]
+for i, j in zip(edges, edge_pair_small):
+    edge_pair[i] = j
+
+print(edge_pair)
 
 def one_hot(arr):
     res = []
@@ -35,7 +58,10 @@ def one_hot(arr):
             res.append(0.0)
     for i in edges:
         if arr[i] == 1 or arr[i] == 3:
-            res.append(1.0)
+            if edge_pair[i] == 0 or edge_pair[i] == 5:
+                res.append(0.0)
+            else:
+                res.append(1.0)
         else:
             res.append(0.0)
     return res

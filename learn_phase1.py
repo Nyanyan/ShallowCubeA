@@ -17,7 +17,7 @@ from random import randint
 n_epochs = 50
 test_ratio = 0.15
 n_data = 100000
-n_residual = 3
+n_residual = 2
 
 data_shape = (180,)
 min_move = 1
@@ -77,7 +77,7 @@ def LeakyReLU(x):
 
 
 x = Input(shape=data_shape)
-y = Dense(64)(x)
+y = Dense(32)(x)
 y = LeakyReLU(y)
 y = Dense(32)(y)
 y = LeakyReLU(y)

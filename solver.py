@@ -11,6 +11,7 @@ c_predict = 1.0
 
 edges = [1, 3, 5, 7, 10, 12, 14, 16, 19, 21, 23, 25, 28, 30, 32, 34, 37, 39, 41, 43, 46, 48, 50, 52]
 phase1_move_candidate = [1, 4, 6, 7, 8, 9, 10, 11, 13, 16]
+edge_pair = [-1, 28, -1, 37, -1, 19, -1, 10, -1, -1, 7, -1, 41, -1, 21, -1, 46, -1, -1, 5, -1, 14, -1, 30, -1, 50, -1, -1, 1, -1, 23, -1, 39, -1, 52, -1, -1, 3, -1, 32, -1, 12, -1, 48, -1, -1, 16, -1, 43, -1, 25, -1, 34, -1]
 
 def one_hot_phase0(arr):
     res = []
@@ -21,7 +22,10 @@ def one_hot_phase0(arr):
             res.append(0.0)
     for i in edges:
         if arr[i] == 1 or arr[i] == 3:
-            res.append(1.0)
+            if arr[edge_pair[i]] == 0 or arr[edge_pair[i]] == 5:
+                res.append(0.0)
+            else:
+                res.append(1.0)
         else:
             res.append(0.0)
     return res
@@ -243,7 +247,7 @@ state = [
 
 state = [i // 9 for i in range(54)]
 
-for notation in "L B2 L2 D2 B L2 F' U2 R2 U2 F2 R2 U' F L2 B' D U2 R U2".split():
+for notation in "L U2 F2 R' U2 B2 R' D2 L2 F2 U2 D R' F' D' F2 R B2 U".split():
     twist = twists_notation.index(notation)
     state = move_sticker(state, twist)
     #print(notation, twist, state)
