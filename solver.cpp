@@ -34,6 +34,22 @@ using namespace std;
 #define n_phase1_dense_residual 32
 #define n_phase1_n_residual 2
 
+/*
+sticker numbering
+              U
+           0  1  2
+           3  4  5
+           6  7  8
+    L         F         R         B
+36 37 38   9 10 11  18 19 20  27 28 29
+39 40 41  12 13 14  21 22 23  30 31 32
+42 43 44  15 16 17  24 25 26  33 34 35
+              D
+          45 46 47
+          48 49 50
+          51 52 53
+*/
+
 const int edges[n_edge_stickers] = {1, 3, 5, 7, 10, 12, 14, 16, 19, 21, 23, 25, 28, 30, 32, 34, 37, 39, 41, 43, 46, 48, 50, 52};
 const int sticker_moves[6][5][4] = {
     {{5, 30, 50, 14},  {19, 23, 25, 21}, {2, 33, 47, 11},  {27, 53, 17, 8},  {20, 26, 24, 18}}, // R
@@ -97,6 +113,14 @@ int phase1_move_candidate[10] = {1, 4, 6, 7, 8, 9, 10, 11, 13, 16};
 
 inline long long tim(){
     return chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now().time_since_epoch()).count();
+}
+
+inline int calc_face(int mov){
+    return mov / 3;
+}
+
+inline int calc_axis(int mov){
+    return mov / 6;
 }
 
 inline double get_element(char *cbuf, FILE *fp){
@@ -172,14 +196,6 @@ inline void init(){
     for (i = 0; i < n_phase1_dense_residual; ++i)
         phase1_dense2[i] = get_element(cbuf, fp);
     phase1_bias2 = get_element(cbuf, fp);
-}
-
-int calc_face(int mov){
-    return mov / 3;
-}
-
-int calc_axis(int mov){
-    return mov / 6;
 }
 
 inline void move_sticker(const int stickers[n_stickers], int res[n_stickers], int mov){
@@ -344,37 +360,19 @@ struct a_star_elem{
     vector<int> solution;
 };
 
-bool operator< (const a_star_elem a, const a_star_elem b){
+bool operator< (const a_star_elem &a, const a_star_elem &b){
     return a.f > b.f;
 };
 
-/*
-def one_hot(arr):
-    res = []
-    for i in range(54):
-        if arr[i] == 0 or arr[i] == 5:
-            res.append(1.0)
-        else:
-            res.append(0.0)
-    for i in edges:
-        if arr[i] == 1 or arr[i] == 3:
-            if edge_pair[i] == 0 or edge_pair[i] == 5:
-                res.append(0.0)
-            else:
-                res.append(1.0)
-        else:
-            res.append(0.0)
-    return res
-*/
-vector<int> phase0(const int stickers[n_stickers]){
+vector<int> phase0(int stickers[n_stickers]){
     int i, mov, sol_size;
     double dis;
     priority_queue<a_star_elem> que;
     a_star_elem first_elem, elem;
     vector<int> res;
-    first_elem.f = predict_phase0(stickers);
     for (i = 0; i < n_stickers; ++i)
         first_elem.stickers[i] = stickers[i];
+    first_elem.f = predict_phase0(first_elem.stickers);
     if (first_elem.f == 0.0)
         return res;
     first_elem.solution.push_back(-1000);
@@ -396,7 +394,7 @@ vector<int> phase0(const int stickers[n_stickers]){
                 n_elem.solution.push_back(elem.solution[i]);
             n_elem.solution.push_back(mov);
             if (dis == 0){
-                for (i = 1; i < n_elem.solution.size(); ++i)
+                for (i = 1; i < (int)n_elem.solution.size(); ++i)
                     res.push_back(n_elem.solution[i]);
                 return res;
             }
@@ -407,15 +405,15 @@ vector<int> phase0(const int stickers[n_stickers]){
     return res;
 }
 
-vector<int> phase1(const int stickers[n_stickers]){
+vector<int> phase1(int stickers[n_stickers]){
     int i, mov, mov_idx, sol_size;
     double dis;
     priority_queue<a_star_elem> que;
     a_star_elem first_elem, elem;
     vector<int> res;
-    first_elem.f = predict_phase1(stickers);
     for (i = 0; i < n_stickers; ++i)
         first_elem.stickers[i] = stickers[i];
+    first_elem.f = predict_phase1(first_elem.stickers);
     if (first_elem.f == 0.0)
         return res;
     first_elem.solution.push_back(-1000);
@@ -438,7 +436,7 @@ vector<int> phase1(const int stickers[n_stickers]){
                 n_elem.solution.push_back(elem.solution[i]);
             n_elem.solution.push_back(mov);
             if (dis == 0){
-                for (i = 1; i < n_elem.solution.size(); ++i)
+                for (i = 1; i < (int)n_elem.solution.size(); ++i)
                     res.push_back(n_elem.solution[i]);
                 return res;
             }
@@ -451,31 +449,33 @@ vector<int> phase1(const int stickers[n_stickers]){
 
 vector<int> solver(const int stickers[n_stickers]){
     int tmp_stickers0[n_stickers], tmp_stickers1[n_stickers];
-    int i;
-    
-    vector<int> solution0 = phase0(stickers);
-    
-    cerr << " phase0 ";
-    for (int i = 0; i < solution0.size(); ++i){
-        cerr << notation[solution0[i]] << " ";
-    }
-    cerr << endl;
+    int i, j;
     
     for (i = 0; i < n_stickers; ++i)
         tmp_stickers0[i] = stickers[i];
-    for (i = 0; i < solution0.size(); ++i){
+    vector<int> solution0 = phase0(tmp_stickers0);
+    
+    cerr << " phase0 ";
+    for (i = 0; i < (int)solution0.size(); ++i){
+        cerr << notation[solution0[i]] << " ";
+    }
+    cerr << endl;
+
+    for (i = 0; i < (int)solution0.size(); ++i){
         move_sticker(tmp_stickers0, tmp_stickers1, solution0[i]);
-        swap(tmp_stickers0, tmp_stickers1);
+        //swap(tmp_stickers0, tmp_stickers1);
+        for (j = 0; j < n_stickers; ++j)
+            tmp_stickers0[j] = tmp_stickers1[j];
     }
     vector<int> solution1 = phase1(tmp_stickers0);
     
     cerr << " phase1 ";
-    for (int i = 0; i < solution1.size(); ++i){
+    for (i = 0; i < (int)solution1.size(); ++i){
         cerr << notation[solution1[i]] << " ";
     }
     cerr << endl;
     
-    for (i = 0; i < solution1.size(); ++i)
+    for (i = 0; i < (int)solution1.size(); ++i)
         solution0.push_back(solution1[i]);
     return solution0;
 }
@@ -486,14 +486,14 @@ int main(){
     string scramble = "L B2 L2 D2 B L2 F' U2 R2 U2 F2 R2 U' F L2 B' D U2 R U2";
     //int stickers[n_stickers] = {4, 5, 1, 5, 0, 0, 5, 3, 4, 1, 5, 0, 2, 1, 1, 1, 3, 3, 3, 3, 2, 4, 2, 2, 4, 1, 2, 0, 4, 5, 1, 3, 0, 0, 1, 5, 1, 2, 2, 4, 4, 3, 2, 0, 0, 4, 4, 5, 2, 5, 0, 3, 5, 3};
     //string scramble = "L U2 F2 R' U2 B2 R' D2 L2 F2 U2 D R' F' D' F2 R B2 U";
-    cerr << predict_phase0(stickers) << endl;
+    //cerr << predict_phase0(stickers) << endl;
     cerr << "scramble: " << scramble << endl;
     cerr << "start!" << endl;
     long long strt = tim();
     vector<int> solution = solver(stickers);
     cerr << "solved! in " << tim() - strt << " ms" << endl;
     cerr << "length " << solution.size() << endl;
-    for (int i = 0; i < solution.size(); ++i){
+    for (int i = 0; i < (int)solution.size(); ++i){
         cerr << notation[solution[i]] << " ";
     }
     cerr << endl;
