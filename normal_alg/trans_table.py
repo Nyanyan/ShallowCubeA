@@ -18,7 +18,7 @@ def cp_table():
     print('done')
 
 def co_table():
-    table = [[-1 for _ in range(14)] for _ in range(2187)]
+    table = [[-1 for _ in range(18)] for _ in range(2187)]
     for idx in range(2187):
         co = idx2co(idx)
         for twist_idx, twist in enumerate(candidate[0]):
@@ -32,7 +32,7 @@ def co_table():
     print('done')
 
 def ep_table_phase0():
-    table = [[-1 for _ in range(14)] for _ in range(495)]
+    table = [[-1 for _ in range(18)] for _ in range(495)]
     for idx in range(495):
         ep = idx2ep_phase0(idx)
         for twist_idx, twist in enumerate(candidate[0]):
@@ -76,7 +76,7 @@ def ep_table_phase1_2():
     print('done')
 
 def eo_table():
-    table = [[-1 for _ in range(14)] for _ in range(2048)]
+    table = [[-1 for _ in range(18)] for _ in range(2048)]
     for idx in range(2048):
         eo = idx2eo(idx)
         for twist_idx, twist in enumerate(candidate[0]):

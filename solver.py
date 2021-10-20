@@ -180,7 +180,7 @@ phase_solution = []
 
 state = [i // 9 for i in range(54)]
 
-for notation in "L B2 L2 D2 B L2 F' U2 R2 U2 F2 R2 U' F".split():
+for notation in "L B2 L2 D2 B L2 F' U2 R2 U2 F2 R2 U' F L2 B' D U2 R U2".split():
     twist = twists_notation.index(notation)
     state = move_sticker(state, twist)
     #print(notation, twist, state)
