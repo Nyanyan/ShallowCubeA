@@ -26,7 +26,7 @@ for _ in trange(n_data):
         l_mov = mov
     solution = solver(cube, 0)
     len_solutions[len(solution)] += 1
-    with open('learn_data/phase0/data.txt', 'a') as f:
+    with open('learn_data/phase0/data9.txt', 'a') as f:
         f.write(''.join([str(i) for i in cube]))
         f.write(' ')
         f.write(str(len(solution)))

@@ -16,7 +16,7 @@ from random import randint
 
 n_epochs = 200
 test_ratio = 0.15
-n_data = 634000
+n_data = 1012000
 n_residual = 2
 
 data_shape = (180,)

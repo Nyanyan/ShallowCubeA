@@ -22,9 +22,9 @@ using namespace std;
 #define n_phase0_moves 18
 #define n_phase1_moves 10
 
-#define c_h 1.2
-#define epsilon 0.01
+#define c_h 1.05
 #define threshold 2.0
+#define predict_max_offset 4.0
 
 #define n_phase0_in 78
 #define n_phase0_dense0 32
@@ -37,6 +37,17 @@ using namespace std;
 #define n_phase1_dense1 32
 #define n_phase1_dense_residual 32
 #define n_phase1_n_residual 2
+
+#define n_phase0_idxes 3
+#define n_phase1_idxes 3
+#define n_corners 8
+#define n_edges 12
+#define n_co 2187
+#define n_cp 40320
+#define n_ep_phase0 495
+#define n_ep_phase1_0 40320
+#define n_ep_phase1_1 24
+#define n_eo 2048
 
 /*
 sticker numbering
@@ -63,9 +74,13 @@ const int sticker_moves[6][5][4] = {
     {{7, 21, 46, 41},  {10, 14, 16, 12}, {6, 18, 47, 44},  {8, 24, 45, 38},  {9, 11, 17, 15} }, // F
     {{1, 39, 52, 23},  {28, 32, 34, 30}, {2, 36, 51, 26},  {0, 42, 53, 20},  {27, 29, 35, 33}}  // B
 };
-
 const string notation[18] = {"R", "R2", "R'", "L", "L2", "L'", "U", "U2", "U'", "D", "D2", "D'", "F", "F2", "F'", "B", "B2", "B'"};
 const int edge_pair[n_stickers] = {-1, 28, -1, 37, -1, 19, -1, 10, -1, -1, 7, -1, 41, -1, 21, -1, 46, -1, -1, 5, -1, 14, -1, 30, -1, 50, -1, -1, 1, -1, 23, -1, 39, -1, 52, -1, -1, 3, -1, 32, -1, 12, -1, 48, -1, -1, 16, -1, 43, -1, 25, -1, 34, -1};
+const int corner_places[n_corners][3] = {{0, 36, 29}, {2, 27, 20}, {8, 18, 11}, {6, 9, 38}, {45, 44, 15}, {47, 17, 24}, {53, 26, 33}, {51, 35, 42}};
+const int corner_colors[n_corners][3] = {{0, 4, 3},   {0, 3, 2},   {0, 2, 1},   {0, 1, 4},  {5, 4, 1},    {5, 1, 2},    {5, 2, 3},    {5, 3, 4}   };
+const int edge_places[n_edges][2] = {{1, 28}, {5, 19}, {7, 10}, {3, 37}, {46, 16}, {50, 25}, {52, 34}, {48, 43}, {12, 41}, {14, 21}, {30, 23}, {32, 39}};
+const int edge_colors[n_edges][2] = {{0, 3},  {0, 2},  {0, 1},  {0, 4},  {5, 1},   {5, 2},   {5, 3},   {5, 4},   {1, 4},   {1, 2},   {3, 2},   {3, 4}  };
+
 
 double phase0_dense0[n_phase0_dense0][n_phase0_in];
 double phase0_bias0[n_phase0_dense0];
@@ -115,6 +130,19 @@ const double solved_phase1[n_phase1_in] = {
 };
 const int phase1_move_candidate[n_phase1_moves] = {1, 4, 6, 7, 8, 9, 10, 11, 13, 16};
 
+int trans_co[n_co][n_phase0_moves];
+int trans_cp[n_cp][n_phase1_moves];
+int trans_ep_phase0[n_ep_phase0][n_phase0_moves];
+int trans_ep_phase1_0[n_ep_phase1_0][n_phase1_moves];
+int trans_ep_phase1_1[n_ep_phase1_1][n_phase1_moves];
+int trans_eo[n_eo][n_phase0_moves];
+
+double prune_phase0_ep_co[n_ep_phase0][n_co];
+double prune_phase0_ep_eo[n_ep_phase0][n_eo];
+double prune_phase1_ep_cp[n_ep_phase1_1][n_cp];
+double prune_phase1_ep_ep[n_ep_phase1_1][n_ep_phase1_0];
+
+int fac[13];
 
 inline long long tim(){
     return chrono::duration_cast<chrono::milliseconds>(chrono::high_resolution_clock::now().time_since_epoch()).count();
@@ -201,6 +229,189 @@ inline void init(){
     for (i = 0; i < n_phase1_dense_residual; ++i)
         phase1_dense2[i] = get_element(cbuf, fp);
     phase1_bias2 = get_element(cbuf, fp);
+
+    if ((fp = fopen("param/trans_co.txt", "r")) == NULL){
+        printf("param file not exist");
+        exit(1);
+    }
+    for (i = 0; i < n_co; ++i)
+        for (j = 0; j < n_phase0_moves; ++j)
+            trans_co[i][j] = get_element(cbuf, fp);
+    
+    if ((fp = fopen("param/trans_cp.txt", "r")) == NULL){
+        printf("param file not exist");
+        exit(1);
+    }
+    for (i = 0; i < n_cp; ++i)
+        for (j = 0; j < n_phase1_moves; ++j)
+            trans_cp[i][j] = get_element(cbuf, fp);
+
+    if ((fp = fopen("param/trans_ep_phase0.txt", "r")) == NULL){
+        printf("param file not exist");
+        exit(1);
+    }
+    for (i = 0; i < n_ep_phase0; ++i)
+        for (j = 0; j < n_phase0_moves; ++j)
+            trans_ep_phase0[i][j] = get_element(cbuf, fp);
+    
+    if ((fp = fopen("param/trans_ep_phase1_0.txt", "r")) == NULL){
+        printf("param file not exist");
+        exit(1);
+    }
+    for (i = 0; i < n_ep_phase1_0; ++i)
+        for (j = 0; j < n_phase1_moves; ++j)
+            trans_ep_phase1_0[i][j] = get_element(cbuf, fp);
+    
+    if ((fp = fopen("param/trans_ep_phase1_1.txt", "r")) == NULL){
+        printf("param file not exist");
+        exit(1);
+    }
+    for (i = 0; i < n_ep_phase1_1; ++i)
+        for (j = 0; j < n_phase1_moves; ++j)
+            trans_ep_phase1_1[i][j] = get_element(cbuf, fp);
+    
+    if ((fp = fopen("param/trans_eo.txt", "r")) == NULL){
+        printf("param file not exist");
+        exit(1);
+    }
+    for (i = 0; i < n_eo; ++i)
+        for (j = 0; j < n_phase0_moves; ++j)
+            trans_eo[i][j] = get_element(cbuf, fp);
+
+    if ((fp = fopen("param/prune_phase0_ep_co.txt", "r")) == NULL){
+        printf("param file not exist");
+        exit(1);
+    }
+    for (i = 0; i < n_ep_phase0; ++i)
+        for (j = 0; j < n_co; ++j)
+            prune_phase0_ep_co[i][j] = get_element(cbuf, fp);
+    
+    if ((fp = fopen("param/prune_phase0_ep_eo.txt", "r")) == NULL){
+        printf("param file not exist");
+        exit(1);
+    }
+    for (i = 0; i < n_ep_phase0; ++i)
+        for (j = 0; j < n_eo; ++j)
+            prune_phase0_ep_eo[i][j] = get_element(cbuf, fp);
+    
+    if ((fp = fopen("param/prune_phase1_ep_cp.txt", "r")) == NULL){
+        printf("param file not exist");
+        exit(1);
+    }
+    for (i = 0; i < n_ep_phase1_1; ++i)
+        for (j = 0; j < n_cp; ++j)
+            prune_phase1_ep_cp[i][j] = get_element(cbuf, fp);
+    
+    if ((fp = fopen("param/prune_phase1_ep_ep.txt", "r")) == NULL){
+        printf("param file not exist");
+        exit(1);
+    }
+    for (i = 0; i < n_ep_phase1_1; ++i)
+        for (j = 0; j < n_ep_phase1_0; ++j)
+            prune_phase1_ep_ep[i][j] = get_element(cbuf, fp);
+    
+    fac[0] = 1;
+    for (i = 1; i < 13; ++i)
+        fac[i] = fac[i - 1] * i;
+}
+
+inline void sticker2arr(const int stickers[n_stickers], int co[n_corners], int cp[n_corners], int eo[n_edges], int ep[n_edges]){
+    int i, place, part, dr, sticker;
+    bool flag;
+    int part_color_corner[3];
+    int part_color_edge[2];
+    for (place = 0; place < n_corners; ++place){
+        for (i = 0; i < 3; ++i)
+            part_color_corner[i] = stickers[corner_places[place][i]];
+        for (part = 0; part < n_corners; ++part){
+            for (dr = 0; dr < 3; ++dr){
+                flag = true;
+                for (sticker = 0; sticker < 3; ++sticker)
+                    flag = flag && part_color_corner[sticker] == corner_colors[part][(sticker - dr + 3) % 3];
+                if (flag){
+                    cp[place] = part;
+                    co[place] = dr;
+                }
+            }
+        }
+    }
+    for (place = 0; place < n_edges; ++place){
+        for (i = 0; i < 2; ++i)
+            part_color_edge[i] = stickers[edge_places[place][i]];
+        for (part = 0; part < n_edges; ++part){
+            for (dr = 0; dr < 2; ++dr){
+                flag = true;
+                for (sticker = 0; sticker < 2; ++sticker)
+                    flag = flag && part_color_edge[sticker] == edge_colors[part][(sticker - dr + 2) % 2];
+                if (flag){
+                    ep[place] = part;
+                    eo[place] = dr;
+                }
+            }
+        }
+    }
+}
+
+inline int cmb(int n, int r){
+    if (n < r)
+        return 0;
+    return fac[n] / fac[r] / fac[n - r];
+}
+
+inline void sticker2idx_phase0(const int stickers[n_stickers], int idxes[n_phase0_idxes]){
+    int i, cnt;
+    int co[n_corners], cp[n_corners], eo[n_edges], ep[n_edges];
+    sticker2arr(stickers, co, cp, eo, ep);
+    idxes[0] = 0;
+    for (i = 0; i < n_corners - 1; ++i){
+        idxes[0] *= 3;
+        idxes[0] += co[i];
+    }
+    idxes[1] = 0;
+    for (i = 0; i < n_edges - 1; ++i){
+        idxes[1] *= 2;
+        idxes[1] += eo[i];
+    }
+    idxes[2] = 0;
+    cnt = 4;
+    for (i = n_edges - 1; i >= 0; --i){
+        if (ep[i] >= 8){
+            idxes[2] += cmb(i, cnt--);
+        }
+    }
+}
+
+inline void sticker2idx_phase1(const int stickers[n_stickers], int idxes[n_phase1_idxes]){
+    int i, j, cnt;
+    int co[n_corners], cp[n_corners], eo[n_edges], ep[n_edges];
+    sticker2arr(stickers, co, cp, eo, ep);
+    idxes[0] = 0;
+    for (i = 0; i < n_corners; ++i){
+        cnt = cp[i];
+        for (j = 0; j < i; ++j){
+            if (cp[j] < cp[i])
+                --cnt;
+        }
+        idxes[0] += fac[7 - i] * cnt;
+    }
+    idxes[1] = 0;
+    for (i = 0; i < 8; ++i){
+        cnt = ep[i];
+        for (j = 0; j < i; ++j){
+            if (ep[j] < ep[i])
+                --cnt;
+        }
+        idxes[1] += fac[7 - i] * cnt;
+    }
+    idxes[2] = 0;
+    for (i = 0; i < 4; ++i){
+        cnt = ep[8 + i] - 8;
+        for (j = 0; j < i; ++j){
+            if (ep[8 + j] < ep[8 + i])
+                --cnt;
+        }
+        idxes[2] += fac[3 - i] * cnt;
+    }
 }
 
 inline void move_sticker(const int stickers[n_stickers], int res[n_stickers], int mov){
@@ -240,6 +451,14 @@ inline double predict_phase0(const int stickers[n_stickers]){
     double hidden0[32], hidden1[32];
     double res;
     int i, j, ri;
+    int idxes[n_phase0_idxes];
+    double min_res, max_res;
+
+    sticker2idx_phase0(stickers, idxes);
+    min_res = max(prune_phase0_ep_co[idxes[2]][idxes[0]], prune_phase0_ep_eo[idxes[2]][idxes[1]]);
+    if (min_res == 0.0)
+        return 0.0;
+    max_res = min_res + predict_max_offset;
 
     // create input array
     for (i = 0; i < n_stickers; ++i){
@@ -294,7 +513,7 @@ inline double predict_phase0(const int stickers[n_stickers]){
     res = phase0_bias2;
     for (j = 0; j < n_phase0_dense_residual; ++j)
         res += phase0_dense2[j] * hidden1[j];
-    res = max(res, epsilon);
+    res = min(max(res, min_res), max_res);
     return c_h * res;
 }
 
@@ -304,6 +523,14 @@ inline double predict_phase1(int stickers[n_stickers]){
     double hidden0[32], hidden1[32];
     double res;
     int i, j, ri, idx, color;
+    int idxes[n_phase1_idxes];
+    double min_res, max_res;
+
+    sticker2idx_phase1(stickers, idxes);
+    min_res = max(prune_phase1_ep_cp[idxes[2]][idxes[0]], prune_phase1_ep_ep[idxes[2]][idxes[1]]);
+    if (min_res == 0.0)
+        return 0.0;
+    max_res = min_res + predict_max_offset;
 
     // create input array
     
@@ -330,11 +557,6 @@ inline double predict_phase1(int stickers[n_stickers]){
                 in_arr[idx++] = 0.0;
         }
     }
-    bool solved = true;
-    for (i = 0; i < n_phase1_in; ++i)
-        solved = solved && (in_arr[i] == solved_phase1[i]);
-    if (solved)
-        return 0.0;
 
     // dense0
     for (i = 0; i < n_phase1_dense0; ++i){
@@ -367,7 +589,7 @@ inline double predict_phase1(int stickers[n_stickers]){
     res = phase1_bias2;
     for (j = 0; j < n_phase1_dense_residual; ++j)
         res += phase1_dense2[j] * hidden1[j];
-    res = max(res, epsilon);
+    res = min(max(res, min_res), max_res);
     return c_h * res;
 }
 
@@ -389,10 +611,6 @@ struct solver_elem{
     double f;
 };
 
-bool operator< (const solver_elem &a, const solver_elem &b){
-    return a.f < b.f;
-};
-
 vector<vector<int>> phase0(const int stickers[n_stickers], long long tl){
     int i, mov, sol_size;
     double dis;
@@ -410,7 +628,8 @@ vector<vector<int>> phase0(const int stickers[n_stickers], long long tl){
     first_elem.solution.push_back(-1000);
     que.push(first_elem);
     long long strt = tim();
-    while (que.size() && tim() - strt < tl){
+    bool found = false;
+    while ((que.size() && tim() - strt < tl) || !found){
         elem = que.top();
         que.pop();
         sol_size = elem.solution.size();
@@ -431,6 +650,7 @@ vector<vector<int>> phase0(const int stickers[n_stickers], long long tl){
                 for (i = 1; i < (int)n_elem.solution.size(); ++i)
                     solution.push_back(n_elem.solution[i]);
                 res.push_back(solution);
+                found = true;
             } else if (n_elem.f < elem.f + threshold)
                 que.push(n_elem);
         }
@@ -444,6 +664,7 @@ vector<int> phase1(const solver_elem inputs, long long tl){
     priority_queue<a_star_elem> que;
     a_star_elem elem;
     vector<int> res;
+    int res_ln = 1000;
     a_star_elem first_elem;
     for (j = 0; j < n_stickers; ++j)
         first_elem.stickers[j] = inputs.stickers[j];
@@ -476,36 +697,30 @@ vector<int> phase1(const solver_elem inputs, long long tl){
                 n_elem.solution.push_back(elem.solution[i]);
             n_elem.solution.push_back(mov);
             if (dis == 0){
-                for (i = 0; i < (int)n_elem.solution.size(); ++i)
-                    res.push_back(n_elem.solution[i]);
-                return res;
+                if ((int)n_elem.solution.size() < res_ln){
+                    res_ln = (int)n_elem.solution.size();
+                    res = {};
+                    for (i = 0; i < (int)n_elem.solution.size(); ++i)
+                        res.push_back(n_elem.solution[i]);
+                }
             }
             if (n_elem.f < elem.f + threshold)
                 que.push(n_elem);
         }
     }
-    res.push_back(-1);
+    if (res_ln == 1000)
+        res.push_back(-1);
     return res;
 }
 
 vector<int> solver(const int stickers[n_stickers]){
     int tmp_stickers[n_stickers];
     int i, j, k;
-    vector<solver_elem> phase0_elems;
+    vector<int> res;
+    int res_ln = 1000;
     
-    vector<vector<int>> solution0 = phase0(stickers, 5000);
-    if (solution0.size() == 0){
-        cerr << " phase0 failed" << endl;
-        vector<int> empty_res;
-        return empty_res;
-    }
-    cerr << " phase0" << endl;
-    for (i = 0; i < (int)solution0.size(); ++i){
-        cerr << " " << i << " ";
-        for (j = 0; j < (int)solution0[i].size(); ++j)
-            cerr << notation[solution0[i][j]] << " ";
-        cerr << endl;
-    }
+    vector<vector<int>> solution0 = phase0(stickers, 1000);
+    cerr << " phase0 " << solution0.size() << " solutions found" << endl;
 
     for (i = 0; i < (int)solution0.size(); ++i){
         solver_elem elem;
@@ -518,28 +733,25 @@ vector<int> solver(const int stickers[n_stickers]){
                 elem.stickers[k] = tmp_stickers[k];
         }
         elem.f = (double)solution0[i].size() + predict_phase1(elem.stickers);
-        phase0_elems.push_back(elem);
-    }
-    sort(phase0_elems.begin(), phase0_elems.end());
-    for (i = 0; i < (int)phase0_elems.size(); ++i){
-        vector<int> solution1 = phase1(phase0_elems[i], 1000);
-        if (solution1[0] == -1){
-            cerr << " phase1 failed" << endl;
+        vector<int> solution1 = phase1(elem, 500);
+        if (solution1[0] == -1)
             continue;
+        cerr << " phase1 length " << solution1.size() << endl;
+        if ((int)solution1.size() < res_ln){
+            res_ln = (int)solution1.size();
+            res = {};
+            for (j = 0; j < (int)solution1.size(); ++j)
+                res.push_back(solution1[j]);
         }
-        cerr << " phase0 & phase1 ";
-        for (i = 0; i < (int)solution1.size(); ++i){
-            cerr << notation[solution1[i]] << " ";
-        }
-        cerr << endl;
-        return solution1;
     }
-    vector<int> empty_res;
-    return empty_res;
+    return res;
 }
 
 int main(){
+    cerr << "initializing" << endl;
     init();
+    cerr << "initialized" << endl;
+
     //int stickers[n_stickers] = {5, 2, 2, 4, 0, 5, 0, 5, 1, 4, 1, 5, 3, 1, 0, 1, 5, 1, 2, 3, 5, 3, 2, 4, 0, 5, 2, 3, 1, 1, 1, 3, 0, 0, 2, 3, 4, 3, 3, 4, 4, 2, 4, 1, 0, 4, 4, 2, 0, 5, 2, 5, 0, 3};
     //string scramble = "L B2 L2 D2 B L2 F' U2 R2 U2 F2 R2 U' F L2 B' D U2 R U2";
     //int stickers[n_stickers] = {4, 5, 1, 5, 0, 0, 5, 3, 4, 1, 5, 0, 2, 1, 1, 1, 3, 3, 3, 3, 2, 4, 2, 2, 4, 1, 2, 0, 4, 5, 1, 3, 0, 0, 1, 5, 1, 2, 2, 4, 4, 3, 2, 0, 0, 4, 4, 5, 2, 5, 0, 3, 5, 3};
