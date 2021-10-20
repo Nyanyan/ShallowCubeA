@@ -22,8 +22,11 @@ using namespace std;
 #define n_phase0_moves 18
 #define n_phase1_moves 10
 
+#define c_h 1.2
+#define epsilon 0.01
+
 #define n_phase0_in 78
-#define n_phase0_dense0 64
+#define n_phase0_dense0 32
 #define n_phase0_dense1 32
 #define n_phase0_dense_residual 32
 #define n_phase0_n_residual 2
@@ -59,7 +62,9 @@ const int sticker_moves[6][5][4] = {
     {{7, 21, 46, 41},  {10, 14, 16, 12}, {6, 18, 47, 44},  {8, 24, 45, 38},  {9, 11, 17, 15} }, // F
     {{1, 39, 52, 23},  {28, 32, 34, 30}, {2, 36, 51, 26},  {0, 42, 53, 20},  {27, 29, 35, 33}}  // B
 };
-string notation[18] = {"R", "R2", "R'", "L", "L2", "L'", "U", "U2", "U'", "D", "D2", "D'", "F", "F2", "F'", "B", "B2", "B'"};
+
+const string notation[18] = {"R", "R2", "R'", "L", "L2", "L'", "U", "U2", "U'", "D", "D2", "D'", "F", "F2", "F'", "B", "B2", "B'"};
+const int edge_pair[n_stickers] = {-1, 28, -1, 37, -1, 19, -1, 10, -1, -1, 7, -1, 41, -1, 21, -1, 46, -1, -1, 5, -1, 14, -1, 30, -1, 50, -1, -1, 1, -1, 23, -1, 39, -1, 52, -1, -1, 3, -1, 32, -1, 12, -1, 48, -1, -1, 16, -1, 43, -1, 25, -1, 34, -1};
 
 double phase0_dense0[n_phase0_dense0][n_phase0_in];
 double phase0_bias0[n_phase0_dense0];
@@ -78,7 +83,6 @@ const double solved_phase0[n_phase0_in] = {
     1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 
     1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-const int edge_pair[n_stickers] = {-1, 28, -1, 37, -1, 19, -1, 10, -1, -1, 7, -1, 41, -1, 21, -1, 46, -1, -1, 5, -1, 14, -1, 30, -1, 50, -1, -1, 1, -1, 23, -1, 39, -1, 52, -1, -1, 3, -1, 32, -1, 12, -1, 48, -1, -1, 16, -1, 43, -1, 25, -1, 34, -1};
 
 double phase1_dense0[n_phase1_dense0][n_phase1_in];
 double phase1_bias0[n_phase1_dense0];
@@ -108,7 +112,7 @@ const double solved_phase1[n_phase1_in] = {
     0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
     0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
 };
-int phase1_move_candidate[10] = {1, 4, 6, 7, 8, 9, 10, 11, 13, 16};
+const int phase1_move_candidate[10] = {1, 4, 6, 7, 8, 9, 10, 11, 13, 16};
 
 
 inline long long tim(){
@@ -207,10 +211,19 @@ inline void move_sticker(const int stickers[n_stickers], int res[n_stickers], in
         tmp_stickers[i] = stickers[i];
         res[i] = stickers[i];
     }
-    for (i = 0; i < amount; ++i){
+    if (amount <= 2){
+        for (i = 0; i < amount; ++i){
+            for (j = 0; j < 5; ++j){
+                for (k = 0; k < 4; ++k)
+                    tmp_stickers[sticker_moves[face][j][(k + 1) % 4]] = res[sticker_moves[face][j][k]];
+            }
+            for (j = 0; j < n_stickers; ++j)
+                res[j] = tmp_stickers[j];
+        }
+    } else{
         for (j = 0; j < 5; ++j){
             for (k = 0; k < 4; ++k)
-                tmp_stickers[sticker_moves[face][j][(k + 1) % 4]] = res[sticker_moves[face][j][k]];
+                tmp_stickers[sticker_moves[face][j][k]] = res[sticker_moves[face][j][(k + 1) % 4]];
         }
         for (j = 0; j < n_stickers; ++j)
             res[j] = tmp_stickers[j];
@@ -222,8 +235,8 @@ inline double leaky_relu(double x){
 }
 
 inline double predict_phase0(const int stickers[n_stickers]){
-    double in_arr[n_phase0_in];
-    double hidden0[64], hidden1[64];
+    vector<double> in_arr(n_phase0_in);
+    double hidden0[32], hidden1[32];
     double res;
     int i, j, ri;
 
@@ -280,18 +293,21 @@ inline double predict_phase0(const int stickers[n_stickers]){
     res = phase0_bias2;
     for (j = 0; j < n_phase0_dense_residual; ++j)
         res += phase0_dense2[j] * hidden1[j];
-    return res;
+    res = max(res, epsilon);
+    return c_h * res;
 }
 
-inline double predict_phase1(const int stickers[n_stickers]){
-    double in_arr[n_phase1_in];
+inline double predict_phase1(int stickers[n_stickers]){
+    //double in_arr[n_phase1_in];
+    vector<double> in_arr(n_phase1_in);
     double hidden0[32], hidden1[32];
     double res;
     int i, j, ri, idx, color;
 
     // create input array
+    
     idx = 0;
-    for (color = 0; color < 6; color += 5){
+    for (color = 0; color <= 5; color += 5){
         for (i = 0; i < 9; ++i){
             if (stickers[i] == color)
                 in_arr[idx++] = 1.0;
@@ -305,7 +321,7 @@ inline double predict_phase1(const int stickers[n_stickers]){
                 in_arr[idx++] = 0.0;
         }
     }
-    for (color = 1; color < 5; ++color){
+    for (color = 1; color <= 4; ++color){
         for (i = 9; i < 45; ++i){
             if (stickers[i] == color)
                 in_arr[idx++] = 1.0;
@@ -350,7 +366,8 @@ inline double predict_phase1(const int stickers[n_stickers]){
     res = phase1_bias2;
     for (j = 0; j < n_phase1_dense_residual; ++j)
         res += phase1_dense2[j] * hidden1[j];
-    return res;
+    res = max(res, epsilon);
+    return c_h * res;
 }
 
 
@@ -463,10 +480,10 @@ vector<int> solver(const int stickers[n_stickers]){
 
     for (i = 0; i < (int)solution0.size(); ++i){
         move_sticker(tmp_stickers0, tmp_stickers1, solution0[i]);
-        //swap(tmp_stickers0, tmp_stickers1);
         for (j = 0; j < n_stickers; ++j)
             tmp_stickers0[j] = tmp_stickers1[j];
     }
+
     vector<int> solution1 = phase1(tmp_stickers0);
     
     cerr << " phase1 ";
@@ -486,16 +503,22 @@ int main(){
     string scramble = "L B2 L2 D2 B L2 F' U2 R2 U2 F2 R2 U' F L2 B' D U2 R U2";
     //int stickers[n_stickers] = {4, 5, 1, 5, 0, 0, 5, 3, 4, 1, 5, 0, 2, 1, 1, 1, 3, 3, 3, 3, 2, 4, 2, 2, 4, 1, 2, 0, 4, 5, 1, 3, 0, 0, 1, 5, 1, 2, 2, 4, 4, 3, 2, 0, 0, 4, 4, 5, 2, 5, 0, 3, 5, 3};
     //string scramble = "L U2 F2 R' U2 B2 R' D2 L2 F2 U2 D R' F' D' F2 R B2 U";
-    //cerr << predict_phase0(stickers) << endl;
-    cerr << "scramble: " << scramble << endl;
-    cerr << "start!" << endl;
-    long long strt = tim();
-    vector<int> solution = solver(stickers);
-    cerr << "solved! in " << tim() - strt << " ms" << endl;
-    cerr << "length " << solution.size() << endl;
-    for (int i = 0; i < (int)solution.size(); ++i){
-        cerr << notation[solution[i]] << " ";
+    //cerr << "scramble: " << scramble << endl;
+    //int stickers[n_stickers];
+    int i;
+    while (true){
+        //for (i = 0; i < n_stickers; ++i)
+        //    cin >> stickers[i];
+        cerr << "start!" << endl;
+        long long strt = tim();
+        vector<int> solution = solver(stickers);
+        cerr << "solved in " << tim() - strt << " ms" << endl;
+        cerr << "length " << solution.size() << endl;
+        for (int i = 0; i < (int)solution.size(); ++i){
+            cerr << notation[solution[i]] << " ";
+        }
+        cerr << endl;
+        cout << solution.size() << endl;
     }
-    cerr << endl;
     return 0;
 }

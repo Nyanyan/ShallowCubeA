@@ -123,7 +123,7 @@ def phase1(stickers):
     res = []
     que = []
     print('raw', stickers)
-    print('input', one_hot_phase1(stickers))
+    print('input', ''.join([str(int(i)) for i in one_hot_phase1(stickers)]))
     dis = distance_phase1([one_hot_phase1(stickers)])[0]
     if dis == 0:
         return []
@@ -173,81 +173,14 @@ def solver(stickers):
         res.extend(solution)
     print(stickers)
     return res
-'''
-trans_cp = []
-with open('trans/trans_cp.csv', mode='r') as f:
-    for idx in range(40320):
-        trans_cp.append([int(i) for i in f.readline().replace('\n', '').split(',')])
-trans_co = []
-with open('trans/trans_co.csv', mode='r') as f:
-    for idx in range(2187):
-        trans_co.append([int(i) for i in f.readline().replace('\n', '').split(',')])
-#trans_ep = [[0 for _ in range(18)]]
-trans_ep = np.zeros((19958400, 18), dtype=int)
-with open('trans/trans_ep.csv', mode='r') as f:
-    for idx in range(19958400):
-        if idx % 200000 == 0:
-            print('ep', idx / 19958400 * 100)
-        trans_ep[idx] = [int(i) for i in f.readline().replace('\n', '').split(',')]
-trans_eo = []
-with open('trans/trans_eo.csv', mode='r') as f:
-    for idx in range(1024):
-        trans_eo.append([int(i) for i in f.readline().replace('\n', '').split(',')])
-
-prune_cp = []
-with open('prune/prune_cp.csv', mode='r') as f:
-    prune_cp = [int(i) for i in f.readline().replace('\n', '').split(',')]
-prune_co_eo = []
-with open('prune/prune_co_eo.csv', mode='r') as f:
-    prune_co_eo = [int(i) for i in f.readline().replace('\n', '').split(',')]
-#prune_ep = [0]
-prune_ep = []
-with open('prune/prune_ep.csv', mode='r') as f:
-    prune_ep = [int(i) for i in f.readline().replace('\n', '').split(',')]
-'''
-print('initialized')
 
 phase_solution = []
 
-w, g, r, b, o, y = range(6)
-'''
-#scramble R Dw R' Fw F D L' Dw2 F2 R2
-state = [
-    g, w, w, g, b, r, b, y, g, 
-    w, r, o, b, r, b, o, o, b, 
-    y, w, r, r, y, g, y, w, g, 
-    b, b, y, y, o, o, o, o, r, 
-    r, r, o, b, w, y, g, g, b, 
-    y, y, r, w, g, o, w, g, w
-]
-strt = time()
-solver(state)
-elapsed = time() - strt
-print('time', elapsed, 'sec')
-
-# scramble: L B2 L2 D2 B L2 F' U2 R2 U2 F2 R2 U' F L2 B' D U2 R U2 x y'
-state = [
-    y, w, g, g, g, y, o, b, g, 
-    b, r, w, b, o, g, o, o, o, 
-    o, o, r, w, y, r, y, w, b, 
-    w, b, r, y, r, b, r, o, y, 
-    g, y, w, y, w, o, r, r, y, 
-    g, w, b, g, b, r, b, g, w
-]
-'''
 # scramble: L B2 L2 D2 B L2 F' U2 R2 U2 F2 R2 U' F L2 B' D U2 R U2
-state = [
-    y, r, r, o, w, y, w, y, g,
-    o, g, y, b, g, w, g, y, g,
-    r, b, y, b, r, o, w, y, r,
-    b, g, g, g, b, w, w, r, b,
-    o, b, b, o, o, r, o, g, w,
-    o, o, r, w, y, r, y, w, b
-]
 
 state = [i // 9 for i in range(54)]
 
-for notation in "L U2 F2 R' U2 B2 R' D2 L2 F2 U2 D R' F' D' F2 R B2 U".split():
+for notation in "L B2 L2 D2 B L2 F' U2 R2 U2 F2 R2 U' F".split():
     twist = twists_notation.index(notation)
     state = move_sticker(state, twist)
     #print(notation, twist, state)
@@ -255,6 +188,7 @@ print(state)
 
 strt = time()
 solution = solver(state)
+print('length', len(solution))
 print(*[twists_notation[i] for i in solution])
 elapsed = time() - strt
 print('time', elapsed, 'sec')

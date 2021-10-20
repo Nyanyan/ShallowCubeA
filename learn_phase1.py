@@ -14,9 +14,9 @@ from basic_functions import *
 from random import randint
 
 
-n_epochs = 50
+n_epochs = 200
 test_ratio = 0.15
-n_data = 100000
+n_data = 160000
 n_residual = 2
 
 data_shape = (180,)
@@ -93,18 +93,18 @@ model.summary()
 data = []
 labels = []
 
-for _ in trange(n_data):
-    n_move = randint(min_move, max_move)
-    cube = [i // 9 for i in range(54)]
-    l_mov = -1000
-    for _ in range(n_move):
-        mov = move_candidate[randint(0, n_moves - 1)]
-        while face(mov) == face(l_mov) or (axis(mov) == axis(l_mov) and mov < l_mov):
-            mov = move_candidate[randint(0, n_moves - 1)]
-        cube = move_sticker(cube, mov)
-        l_mov = mov
-    data.append(one_hot(cube))
-    labels.append(n_move)
+len_solutions = [0 for _ in range(20)]
+
+with open('learn_data/phase1/all_data.txt', 'r') as f:
+    for _ in trange(n_data):
+        cube_str, label = f.readline().split()
+        label = int(label)
+        cube = [int(i) for i in cube_str]
+        data.append(one_hot(cube))
+        labels.append(label)
+        len_solutions[label] += 1
+
+print(len_solutions)
 
 data = np.array(data)
 labels = np.array(labels)
@@ -142,25 +142,3 @@ plt.ylabel('mae')
 plt.legend(loc='best')
 plt.savefig('graph/phase1_mae.png')
 plt.clf()
-
-
-data = []
-labels = []
-
-for _ in trange(1000):
-    n_move = randint(min_move, max_move)
-    cube = [i // 9 for i in range(54)]
-    l_mov = -1000
-    for _ in range(n_move):
-        mov = move_candidate[randint(0, n_moves - 1)]
-        while face(mov) == face(l_mov) or (axis(mov) == axis(l_mov) and mov < l_mov):
-            mov = move_candidate[randint(0, n_moves - 1)]
-        cube = move_sticker(cube, mov)
-        l_mov = mov
-    data.append(one_hot(cube))
-    labels.append(n_move)
-
-data = np.array(data)
-labels = np.array(labels)
-
-print(model.evaluate(data, labels))

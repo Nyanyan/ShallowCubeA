@@ -79,6 +79,8 @@ B 5 (15-17)
 #                   0    1     2     3    4     5     6    7     8     9    10    11    12   13    14    15   16    17
 twists_notation = ["R", "R2", "R'", "L", "L2", "L'", "U", "U2", "U'", "D", "D2", "D'", "F", "F2", "F'", "B", "B2", "B'"]
 
+candidate = [list(range(18)), [1, 4, 6, 7, 8, 9, 10, 11, 13, 16]]
+
 fac = [1]
 for i in range(1, 13):
     fac.append(fac[-1] * i)
@@ -138,45 +140,6 @@ sticker_moves = [
     [(7, 21, 46, 41), (10, 14, 16, 12), (6, 18, 47, 44), (8, 24, 45, 38), (9, 11, 17, 15)],     # F
     [(1, 39, 52, 23), (28, 32, 34, 30), (2, 36, 51, 26), (0, 42, 53, 20), (27, 29, 35, 33)]     # B
 ]
-
-def sticker2arr(stickers):
-    cp = [-1 for _ in range(8)]
-    co = [-1 for _ in range(8)]
-    for place in range(8):
-        part_color = [stickers[i] for i in corner_places[place]]
-        for part in range(8):
-            for dr in range(3):
-                cnt = 0
-                for sticker in range(3):
-                    if part_color[sticker] != -1 and part_color[sticker] != corner_colors[part][(sticker - dr) % 3]:
-                        break
-                    if part_color[sticker] == -1:
-                        cnt += 1
-                else:
-                    if cnt <= 1:
-                        cp[place] = part
-                        co[place] = dr
-                        break
-            else:
-                continue
-            break
-    ep = [-1 for _ in range(12)]
-    eo = [-1 for _ in range(12)]
-    for place in range(12):
-        part_color = [stickers[i] for i in edge_places[place]]
-        for part in range(12):
-            for dr in range(2):
-                for sticker in range(2):
-                    if part_color[sticker] != edge_colors[part][(sticker - dr) % 2]:
-                        break
-                else:
-                    ep[place] = part
-                    eo[place] = dr
-                    break
-            else:
-                continue
-            break
-    return cp, co, ep, eo
 
 def sticker2numbering(stickers):
     res = list(range(54))
@@ -244,6 +207,41 @@ def print_sticker(arr):
             print('')
         print('')
 
+def sticker2arr(stickers):
+    cp = [-1 for _ in range(8)]
+    co = [-1 for _ in range(8)]
+    for place in range(8):
+        part_color = [stickers[i] for i in corner_places[place]]
+        for part in range(8):
+            for dr in range(3):
+                for sticker in range(3):
+                    if part_color[sticker] != corner_colors[part][(sticker - dr) % 3]:
+                        break
+                else:
+                    cp[place] = part
+                    co[place] = dr
+                    break
+            else:
+                continue
+            break
+    ep = [-1 for _ in range(12)]
+    eo = [-1 for _ in range(12)]
+    for place in range(12):
+        part_color = [stickers[i] for i in edge_places[place]]
+        for part in range(12):
+            for dr in range(2):
+                for sticker in range(2):
+                    if part_color[sticker] != edge_colors[part][(sticker - dr) % 2]:
+                        break
+                else:
+                    ep[place] = part
+                    eo[place] = dr
+                    break
+            else:
+                continue
+            break
+    return cp, co, ep, eo
+
 def move_cp(cp, twist):
     twist_type = twist // 3
     twist_amount = twist % 3 + 1
@@ -285,19 +283,20 @@ def move_eo(eo, twist):
     twist_type = twist // 3
     twist_amount = twist % 3 + 1
     res = [i for i in eo]
+    flip_flag = (twist_type == 4 or twist_type == 5) and twist_amount != 2
     for _ in range(twist_amount):
         n_res = [i for i in res]
         for i in range(4):
             n_res[edge_move_parts[twist_type][(i + 1) % 4]] = res[edge_move_parts[twist_type][i]]
-        for i in range(len(eo_changes[twist_type])):
-            n_res[eo_changes[twist_type][i]] = 1 - n_res[eo_changes[twist_type][i]]
+            if flip_flag:
+                n_res[edge_move_parts[twist_type][(i + 1) % 4]] = 1 - n_res[edge_move_parts[twist_type][(i + 1) % 4]]
         res = n_res
     return res
 
 def cmb(n, r):
     return fac[n] // fac[r] // fac[n - r]
 
-def cp2idx(cp): # 40320
+def cp2idx(cp):
     res = 0
     for i in range(8):
         cnt = cp[i]
@@ -321,7 +320,7 @@ def idx2cp(idx):
         idx %= fac[7 - i]
     return res
 
-def co2idx(co): # 2187
+def co2idx(co):
     res = 0
     for i in range(7):
         res *= 3
@@ -336,81 +335,87 @@ def idx2co(idx):
     res[7] = (3 - sum(res) % 3) % 3
     return res
 
-def ep2idx(ep): # 19958400
+def ep2idx_phase0(ep):
     res = 0
-    ii = 0
-    for i in range(1, 12):
-        if 1 <= ep[i] < 10:
-            cnt = ep[i] - 1
-            for j in ep[1:i]:
-                if j < ep[i]:
-                    cnt -= 1
-            res += fac[8 - ii] * cnt
-            ii += 1
-    res *= 55
-    targets = set(range(1, 10))
-    cnt = 9
-    for i in range(1, 12):
-        if ep[i] in targets:
-            res += cmb(11 - i, cnt)
+    cnt = 4
+    for i in reversed(range(12)):
+        if ep[i] >= 8:
+            res += cmb(i, cnt)
             cnt -= 1
     return res
 
-def idx2ep(idx):
-    idx1 = idx // 55
-    ep9 = [-1 for _ in range(9)]
-    for i in range(9):
-        candidate = idx1 // fac[8 - i] + 1
+def idx2ep_phase0(idx):
+    res = [-1 for _ in range(12)]
+    cnt = 4
+    for i in reversed(range(12)):
+        c = cmb(i, cnt)
+        if idx >= c:
+            res[i] = 8
+            idx -= c
+            cnt -= 1
+    return res
+
+def ep2idx_phase1_1(ep):
+    res = 0
+    for i in range(8):
+        cnt = ep[i]
+        for j in ep[:i]:
+            if j < ep[i]:
+                cnt -= 1
+        res += fac[7 - i] * cnt
+    return res
+
+def ep2idx_phase1_2(ep):
+    res = 0
+    for i in range(4):
+        cnt = ep[8 + i] - 8
+        for j in ep[8:8 + i]:
+            if j < ep[8 + i]:
+                cnt -= 1
+        res += fac[3 - i] * cnt
+    return res
+
+def idx2ep_phase1_1(idx1):
+    res = [-1 for _ in range(12)]
+    for i in range(8):
+        candidate = idx1 // fac[7 - i]
         marked = [True for _ in range(i)]
-        for _ in range(9):
-            for j, k in enumerate(ep9[:i]):
+        for _ in range(8):
+            for j, k in enumerate(res[:i]):
                 if k <= candidate and marked[j]:
                     candidate += 1
                     marked[j] = False
-        ep9[i] = candidate
-        idx1 %= fac[8 - i]
-    idx2 = idx % 55
-    res = [10 for _ in range(12)]
-    res[0] = 0
-    target = -1
-    cnt = 9
-    j = 0
-    for i in range(1, 12):
-        tmp = cmb(11 - i, cnt)
-        if idx2 >= tmp:
-            res[i] = ep9[j]
-            idx2 -= tmp
-            cnt -= 1
-            j += 1
-            if cnt == 0:
-                break
+        res[i] = candidate
+        idx1 %= fac[7 - i]
     return res
 
+def idx2ep_phase1_2(idx2):
+    res = [-1 for _ in range(12)]
+    for i in range(4):
+        candidate = idx2 // fac[3 - i]
+        marked = [True for _ in range(i)]
+        for _ in range(4):
+            for j, k in enumerate(res[8:8 + i]):
+                if k <= candidate and marked[j]:
+                    candidate += 1
+                    marked[j] = False
+        res[8 + i] = candidate
+        idx2 %= fac[3 - i]
+    for i in range(4):
+        res[8 + i] += 8
+    return res
 
-def eo2idx(eo): # 1024
+def eo2idx(eo):
     res = 0
-    for i in eo[1:11]:
+    for i in eo[:11]:
         res *= 2
         res += i
     return res
 
 def idx2eo(idx):
     res = [0 for _ in range(12)]
-    for i in reversed(range(1, 11)):
+    for i in reversed(range(11)):
         res[i] = idx % 2
         idx //= 2
     res[11] = sum(res) % 2
     return res
-
-'''
-ep = list(range(12))
-eo = [0 for _ in range(12)]
-cp = list(range(8))
-co = [0 for _ in range(8)]
-sticker = list(range(54))
-for notation in "R U R' U'".split():
-    twist = twists_notation.index(notation)
-    print(twist)
-    sticker = move_sticker(sticker, twist)
-    print_sticker(sticker)
-'''
