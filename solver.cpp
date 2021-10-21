@@ -733,7 +733,7 @@ vector<int> solver(const int stickers[n_stickers]){
         }
         phase0_solutions.push_back(elem);
     }
-    vector<int> res = phase1(phase0_solutions, 900);
+    vector<int> res = phase1(phase0_solutions, 1400);
     if (res[0] == -1){
         cerr << " no solution found in phase1" << endl;
         return empty_res;
