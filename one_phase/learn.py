@@ -19,7 +19,7 @@ test_ratio = 0.15
 n_data = 1000000
 n_residual = 4
 
-data_shape = (280 + 324,)
+data_shape = (280 + 324 + 4,)
 
 def one_hot(arr):
     res = []
@@ -58,6 +58,8 @@ def one_hot(arr):
                 res.append(1.0)
             else:
                 res.append(0.0)
+    for i in range(95, 99):
+        res.append(arr[i])
     return res
 
 def face(mov):
@@ -97,12 +99,12 @@ with open('learn_data/data.txt', 'r') as f:
 
 for _, datum in zip(trange(n_data), raw_data):
     #datum = f.readline()
-    datum_int = [int(i) for i in datum.split()]
-    label = datum_int[-1] - 10
-    cube = datum_int[:-1]
+    datum_int = [float(i) for i in datum.split()]
+    label = datum_int[-1]
+    cube = [int(i) for i in datum_int[:-1]]
     data.append(one_hot(cube))
     labels.append(label)
-    len_solutions[label] += 1
+    len_solutions[int(label)] += 1
 
 print(len_solutions)
 
