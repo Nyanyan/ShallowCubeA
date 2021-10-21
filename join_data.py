@@ -1,6 +1,6 @@
 import sys
 
-phase = '1'
+phase = '0'
 
 data = ''
 for file in sys.argv[1:]:
