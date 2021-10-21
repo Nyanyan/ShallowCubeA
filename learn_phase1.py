@@ -19,7 +19,7 @@ test_ratio = 0.15
 n_data = 1012000
 n_residual = 2
 
-data_shape = (180,)
+data_shape = (182,)
 min_move = 1
 max_move = 12
 n_moves = 10
@@ -43,6 +43,27 @@ sticker numbering
           48 49 50
           51 52 53
 '''
+n_co = 2187
+n_cp = 40320
+n_ep_phase0 = 495
+n_ep_phase1_0 = 40320
+n_ep_phase1_1 = 24
+n_eo = 2048
+
+with open("param/prune_phase1_ep_cp.txt", "r") as f:
+    prune_phase1_ep_cp = []
+    for i in range(n_ep_phase1_1):
+        prune_phase1_ep_cp.append([])
+        for j in range(n_cp):
+            prune_phase1_ep_cp[i].append(float(f.readline()))
+
+with open("param/prune_phase1_ep_ep.txt", "r") as f:
+    prune_phase1_ep_ep = []
+    for i in range(n_ep_phase1_1):
+        prune_phase1_ep_ep.append([])
+        for j in range(n_ep_phase1_0):
+            prune_phase1_ep_ep[i].append(float(f.readline()))
+
 
 def one_hot(arr):
     res = []
@@ -63,6 +84,12 @@ def one_hot(arr):
                 res.append(1.0)
             else:
                 res.append(0.0)
+    cp, co, ep, eo = sticker2arr(arr)
+    idx0 = cp2idx(co)
+    idx1 = ep2idx_phase1_1(ep)
+    idx2 = ep2idx_phase1_2(ep)
+    res.append(prune_phase1_ep_cp[idx2][idx0])
+    res.append(prune_phase1_ep_ep[idx2][idx1])
     return res
 
 def face(mov):

@@ -13,6 +13,8 @@ def face(mov):
 def axis(mov):
     return mov // 6
 
+data = []
+
 for _ in trange(n_data):
     n_move = randint(10, 18)
     stickers = [i // 9 for i in range(54)]
@@ -22,6 +24,7 @@ for _ in trange(n_data):
         mov = randint(0, 17)
         while face(mov) == face(l_mov) or (axis(mov) == axis(l_mov) and mov < l_mov):
             mov = randint(0, 17)
+        stickers = move_sticker(stickers, mov)
         cp = move_cp(cp, mov)
         co = move_co(co, mov)
         ep = move_ep(ep, mov)
@@ -33,7 +36,11 @@ for _ in trange(n_data):
     arr.extend([i for i in ep])
     arr.extend([i for i in eo])
     arr.append(dr)
-    with open('learn_data/data.txt', 'a') as f:
+    arr.extend([i for i in stickers])
+    data.append([arr, n_move])
+
+with open('learn_data/data.txt', 'w') as f:
+    for arr, n_mmove in data:
         f.write(' '.join([str(i) for i in arr]))
         f.write(' ')
         f.write(str(n_move))

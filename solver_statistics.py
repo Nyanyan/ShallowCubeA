@@ -4,7 +4,10 @@ from time import time
 from random import randrange
 from tqdm import trange
 
-solver = subprocess.Popen('./solver.out'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+err = subprocess.DEVNULL
+#err = None
+
+solver = subprocess.Popen('./solver.out'.split(), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=err)
 
 all_num = 50
 

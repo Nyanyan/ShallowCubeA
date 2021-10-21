@@ -16,10 +16,10 @@ from random import randint
 
 n_epochs = 200
 test_ratio = 0.15
-n_data = 900000
+n_data = 1000000
 n_residual = 4
 
-data_shape = (268,)
+data_shape = (280 + 324,)
 
 def one_hot(arr):
     res = []
@@ -41,13 +41,23 @@ def one_hot(arr):
                 res.append(1.0)
             else:
                 res.append(0.0)
-    for place in range(28, 40):
-        res.append(float(arr[place]))
+    for part in range(2):
+        for place in range(28, 40):
+            if arr[place] == part:
+                res.append(1.0)
+            else:
+                res.append(0.0)
     for dr in range(24):
         if arr[40] == dr:
             res.append(1.0)
         else:
             res.append(0.0)
+    for color in range(6):
+        for place in range(41, 95):
+            if arr[place] == color:
+                res.append(1.0)
+            else:
+                res.append(0.0)
     return res
 
 def face(mov):
@@ -62,13 +72,15 @@ def LeakyReLU(x):
 
 
 x = Input(shape=data_shape)
-y = Dense(128)(x)
+y = Dense(64)(x)
 y = LeakyReLU(y)
-y = Dense(128)(y)
+y = Dense(32)(y)
 y = LeakyReLU(y)
 for _ in range(n_residual):
     sc = y
-    y = Dense(128)(y)
+    y = Dense(32)(y)
+    y = LeakyReLU(y)
+    y = Dense(32)(y)
     y = Add()([y, sc])
     y = LeakyReLU(y)
 y = Dense(1)(y)
@@ -81,14 +93,16 @@ labels = []
 len_solutions = [0 for _ in range(20)]
 
 with open('learn_data/data.txt', 'r') as f:
-    for _ in trange(n_data):
-        datum = f.readline()
-        datum_int = cube = [int(i) for i in datum.split()]
-        label = datum_int[-1]
-        cube = datum_int[:-1]
-        data.append(one_hot(cube))
-        labels.append(label)
-        len_solutions[label] += 1
+    raw_data = f.read().splitlines()
+
+for _, datum in zip(trange(n_data), raw_data):
+    #datum = f.readline()
+    datum_int = [int(i) for i in datum.split()]
+    label = datum_int[-1] - 10
+    cube = datum_int[:-1]
+    data.append(one_hot(cube))
+    labels.append(label)
+    len_solutions[label] += 1
 
 print(len_solutions)
 

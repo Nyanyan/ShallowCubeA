@@ -22,16 +22,16 @@ using namespace std;
 #define n_phase0_moves 18
 #define n_phase1_moves 10
 
-#define c_h 1.2
-#define table_weight 1.1
+#define c_h 1.1
+#define table_weight 0.9
 
-#define n_phase0_in 78
+#define n_phase0_in 80
 #define n_phase0_dense0 32
 #define n_phase0_dense1 16
 #define n_phase0_dense_residual 16
 #define n_phase0_n_residual 2
 
-#define n_phase1_in 180
+#define n_phase1_in 182
 #define n_phase1_dense0 32
 #define n_phase1_dense1 32
 #define n_phase1_dense_residual 32
@@ -475,6 +475,8 @@ inline double predict_phase0(const int stickers[n_stickers]){
         } else
             in_arr[n_stickers + i] = 0.0;
     }
+    in_arr[78] = (double)prune_phase0_ep_co[idxes[2]][idxes[0]];
+    in_arr[79] = (double)prune_phase0_ep_eo[idxes[2]][idxes[1]];
 
     // dense0
     for (i = 0; i < n_phase0_dense0; ++i){
@@ -551,6 +553,8 @@ inline double predict_phase1(int stickers[n_stickers]){
                 in_arr[idx++] = 0.0;
         }
     }
+    in_arr[180] = (double)prune_phase1_ep_cp[idxes[2]][idxes[0]];
+    in_arr[181] = (double)prune_phase1_ep_ep[idxes[2]][idxes[1]];
 
     // dense0
     for (i = 0; i < n_phase1_dense0; ++i){
@@ -642,7 +646,7 @@ vector<vector<int>> phase0(const int stickers[n_stickers], long long tl){
                 for (i = 1; i < (int)n_elem.solution.size(); ++i)
                     solution.push_back(n_elem.solution[i]);
                 res.push_back(solution);
-                break;
+                //break;
             } else
                 que.push(n_elem);
         }
