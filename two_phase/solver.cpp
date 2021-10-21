@@ -444,7 +444,7 @@ inline double leaky_relu(double x){
 }
 
 inline double predict_phase0(const int stickers[n_stickers]){
-    vector<double> in_arr(n_phase0_in);
+    double in_arr[n_phase0_in];
     double hidden0[32], hidden1[32];
     double res;
     int i, j, ri;
@@ -512,8 +512,7 @@ inline double predict_phase0(const int stickers[n_stickers]){
 }
 
 inline double predict_phase1(int stickers[n_stickers]){
-    //double in_arr[n_phase1_in];
-    vector<double> in_arr(n_phase1_in);
+    double in_arr[n_phase1_in];
     double hidden0[32], hidden1[32];
     double res;
     int i, j, ri, idx, color;
@@ -714,7 +713,7 @@ vector<int> solver(const int stickers[n_stickers]){
     vector<solver_elem> phase0_solutions;
     vector<int> empty_res;
     
-    vector<vector<int>> solution0 = phase0(stickers, 100);
+    vector<vector<int>> solution0 = phase0(stickers, 75);
     if (solution0.size() == 0){
         cerr << " no solution found in phase0" << endl;
         return empty_res;
@@ -733,7 +732,7 @@ vector<int> solver(const int stickers[n_stickers]){
         }
         phase0_solutions.push_back(elem);
     }
-    vector<int> res = phase1(phase0_solutions, 1400);
+    vector<int> res = phase1(phase0_solutions, 1425);
     if (res[0] == -1){
         cerr << " no solution found in phase1" << endl;
         return empty_res;
