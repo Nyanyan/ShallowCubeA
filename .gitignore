@@ -1,5 +1,6 @@
 __pycache__
-one__phase/__pycache__
-two__phase/__pycache__
-solver.out
-learn_data
+one_phase/__pycache__
+one_phase/learn_data
+two_phase/__pycache__
+two_phase/solver.out
+two_phase/learn_data
