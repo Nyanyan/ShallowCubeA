@@ -17,13 +17,13 @@
 
 using namespace std;
 
+#define c_h 1.1
+#define table_weight 0.9
+
 #define n_stickers 54
 #define n_edge_stickers 24
 #define n_phase0_moves 18
 #define n_phase1_moves 10
-
-#define c_h 1.1
-#define table_weight 0.9
 
 #define n_phase0_in 80
 #define n_phase0_dense0 32
@@ -766,9 +766,8 @@ int main(){
         vector<int> solution = solver(stickers);
         cerr << "solved in " << tim() - strt << " ms" << endl;
         cerr << "length " << solution.size() << endl;
-        for (i = 0; i < (int)solution.size(); ++i){
+        for (i = 0; i < (int)solution.size(); ++i)
             cerr << notation[solution[i]] << " ";
-        }
         cerr << endl;
         cout << solution.size() << endl;
     }
