@@ -12,6 +12,7 @@ solver = subprocess.Popen('./solver.out'.split(), stdin=subprocess.PIPE, stdout=
 all_num = 50
 
 avg_ln = 0
+avg_vis = 0
 num = 0
 
 for t in trange(all_num):
@@ -23,6 +24,7 @@ for t in trange(all_num):
 
     solver.stdin.write((' '.join([str(i) for i in state]) + '\n').encode('utf-8'))
     solver.stdin.flush()
+    avg_vis += int(solver.stdout.readline().decode().replace('\r', '').replace('\n', ''))
     solution = solver.stdout.readline().decode()
     #print(solution)
     ln = len(solution.split())
@@ -34,3 +36,4 @@ solver.kill()
 
 print('found', num, 'solutions', num / all_num * 100, 'persent')
 print('avg_len', avg_ln / num, 'moves')
+print('avg_vis', avg_vis / num, 'moves')

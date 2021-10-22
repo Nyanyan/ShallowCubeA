@@ -576,6 +576,8 @@ struct solver_elem{
     vector<int> solution;
 };
 
+int visited_nodes;
+
 vector<vector<int>> phase0(const int stickers[n_stickers], long long tl){
     int i, mov, sol_size;
     double dis;
@@ -594,6 +596,7 @@ vector<vector<int>> phase0(const int stickers[n_stickers], long long tl){
     que.push(first_elem);
     long long strt = tim();
     while (que.size() && tim() - strt < tl){
+        ++visited_nodes;
         elem = que.top();
         que.pop();
         sol_size = elem.solution.size();
@@ -614,6 +617,7 @@ vector<vector<int>> phase0(const int stickers[n_stickers], long long tl){
                 for (i = 1; i < (int)n_elem.solution.size(); ++i)
                     solution.push_back(n_elem.solution[i]);
                 res.push_back(solution);
+                //return res;
                 //break;
             } else
                 que.push(n_elem);
@@ -644,6 +648,7 @@ vector<int> phase1(vector<solver_elem> inputs, long long tl){
     }
     long long strt = tim();
     while (que.size() && tim() - strt < tl){
+        ++visited_nodes;
         elem = que.top();
         que.pop();
         sol_size = elem.solution.size();
@@ -668,6 +673,7 @@ vector<int> phase1(vector<solver_elem> inputs, long long tl){
                     res = {};
                     for (i = 0; i < (int)n_elem.solution.size(); ++i)
                         res.push_back(n_elem.solution[i]);
+                    //return res;
                 }
             }
             que.push(n_elem);
@@ -681,16 +687,17 @@ vector<int> phase1(vector<solver_elem> inputs, long long tl){
 vector<int> solver(const int stickers[n_stickers]){
     int tmp_stickers[n_stickers];
     int i, j, k;
+    int sum_visited_nodes;
     vector<solver_elem> phase0_solutions;
     vector<int> empty_res;
-    
+    visited_nodes = 0;
     vector<vector<int>> solution0 = phase0(stickers, 75);
+    sum_visited_nodes = visited_nodes;
     if (solution0.size() == 0){
         cerr << " no solution found in phase0" << endl;
         return empty_res;
     }
-    cerr << " phase0 " << solution0.size() << " solutions found" << endl;
-
+    cerr << " phase0 " << solution0.size() << " solutions found; visiited " << visited_nodes << " nodes" << endl;
     for (i = 0; i < min(50, (int)solution0.size()); ++i){
         solver_elem elem;
         for (j = 0; j < n_stickers; ++j)
@@ -703,12 +710,15 @@ vector<int> solver(const int stickers[n_stickers]){
         }
         phase0_solutions.push_back(elem);
     }
+    visited_nodes = 0;
     vector<int> res = phase1(phase0_solutions, 1425);
+    sum_visited_nodes += visited_nodes;
     if (res[0] == -1){
         cerr << " no solution found in phase1" << endl;
         return empty_res;
     }
-    cerr << " length " << res.size() << endl;
+    cerr << " phase1 searched; length " << res.size() << "; visiited " << visited_nodes << " nodes" << endl;
+    cout << sum_visited_nodes << endl;
     return res;
 }
 
