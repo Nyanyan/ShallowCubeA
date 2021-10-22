@@ -20,7 +20,7 @@ In ```one_phase``` directory, there are files for ShallowCubeA algorithm.
 
 The major algorithm of solving rubik's cubes is called [two-phase algorithm](http://kociemba.org/math/imptwophase.htm). I improved this algorithm with neural networks.
 
-When searching each phase with A* algorithm, I used a trained neural network for its heuristic function. This improved the algorithm by decreasing the number of visited nodes.
+When searching each phase with A* algorithm, I used a trained neural network for its heuristic function. This improved the algorithm by decreasing the number of visited nodes by about 75%.
 
 ### ShallowCubeA Algorithm
 
@@ -28,9 +28,7 @@ As of 2021, it is very difficult to solve rubik's cubes in one phase.
 
 There are two previous researches, [Finding Optimal Solutions to Rubik's Cube Using Pattern Databases](https://www.semanticscholar.org/paper/Finding-Optimal-Solutions-to-Rubik%27s-Cube-Using-Korf/e6ab7d5d5d38a659fd2ffa53d72ab67e6abc61af) and [Solving the Rubik's Cube with Deep Reinforcement Learning and Search](http://deepcube.igb.uci.edu/static/files/SolvingTheRubiksCubeWithDeepReinforcementLearningAndSearch_Final.pdf). Both require high-spec computers.
 
-This algorithm, ShallowCubeA algorithm, can be run in your computers.
-
-This algorithm also uses a trained neural network for A*'s heuristic function.
+This algorithm, ShallowCubeA algorithm, can be run in your computers. This algorithm uses a trained neural network for A*'s heuristic function.
 
 
 
@@ -67,20 +65,21 @@ L(left face)  : 4
 D(bottom face): 5
 ```
 
-After you input the state of your rubik's cube, you see some outputs like this:
+After you input the state of your rubik's cube, you will see some outputs like this:
 
 ```
 start!
- phase0 112 solutions found
- length 21
-solved in 1515 ms
+ phase0 114 solutions found; visiited 2031 nodes
+ phase1 searched; length 21; visiited 36787 nodes
+38818
+solved in 1516 ms
 length 21
 D' F2 U L' U F' U' R2 D B R2 U F2 U L2 U' L2 F2 R2 F2 D'
 ```
 
-The last line is outputted in stdout and this is the very solution, others are outputted in stderr.
+The 4th and last line is outputted in stdout, others are outputted in stderr.
 
-The solution is written in Singmaster notation.
+The solution, the last line, is written in Singmaster notation.
 
 ### ShallowCubeA Algorithm
 

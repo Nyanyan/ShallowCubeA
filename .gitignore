@@ -2,6 +2,7 @@ __pycache__
 one_phase/__pycache__
 one_phase/learn_data
 one_phase/param
+one_phase/solver.out
 two_phase/__pycache__
 two_phase/solver.out
 two_phase/learn_data

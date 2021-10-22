@@ -3,7 +3,7 @@ from tqdm import trange
 from random import randint
 import numpy as np
 
-n_data = 1000000
+n_data = 3000000
 data = []
 labels = []
 len_solutions = [0 for _ in range(20)]
@@ -29,7 +29,6 @@ with open('param/prune_cp_eo.txt', mode='r') as f:
         for j in range(1024):
             prune_cp_eo[i][j] = float(elems[idx])
             idx += 1
-#print(max([max(i) for i in prune_cp_eo]))
 with open('param/prune_co_eo_dr.txt', mode='r') as f:
     elems = f.read().splitlines()
     print(len(elems))
@@ -39,7 +38,6 @@ with open('param/prune_co_eo_dr.txt', mode='r') as f:
             for k in range(24):
                 prune_co_eo_dr[i][j][k] = float(elems[idx])
                 idx += 1
-#print(max([max([max(j) for j in i]) for i in prune_co_eo_dr]))
 with open('param/prune_ep.txt', mode='r') as f:
     elems = f.read().splitlines()
     print(len(elems))
@@ -47,7 +45,6 @@ with open('param/prune_ep.txt', mode='r') as f:
     for i in trange(19958400):
         prune_ep[i] = float(elems[idx])
         idx += 1
-#print(max(prune_ep))
 with open('param/prune_cp_dr.txt', mode='r') as f:
     elems = f.read().splitlines()
     print(len(elems))
@@ -56,7 +53,10 @@ with open('param/prune_cp_dr.txt', mode='r') as f:
         for j in range(24):
             prune_cp_dr[i][j] = float(elems[idx])
             idx += 1
-#print(max([max(i) for i in prune_cp_dr]))
+print(max([max(i) for i in prune_cp_eo]))
+print(max([max([max(j) for j in i]) for i in prune_co_eo_dr]))
+print(max(prune_ep))
+print(max([max(i) for i in prune_cp_dr]))
 
 for _ in trange(n_data):
     n_move = randint(5, 18)
@@ -89,8 +89,6 @@ for _ in trange(n_data):
     arr.append(prune_co_eo_dr[co_idx][eo_idx][dr_idx])
     arr.append(prune_ep[ep_idx])
     arr.append(prune_cp_dr[cp_idx][dr_idx])
-    if max(prune_cp_eo[cp_idx][eo_idx], prune_co_eo_dr[co_idx][eo_idx][dr_idx], prune_ep[ep_idx], prune_cp_dr[cp_idx][dr_idx]) > n_move:
-        print('what??')
     data.append([arr, n_move])
 
 with open('learn_data/data.txt', 'a') as f:
