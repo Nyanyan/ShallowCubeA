@@ -735,9 +735,8 @@ int main(){
         cerr << "solved in " << tim() - strt << " ms" << endl;
         cerr << "length " << solution.size() << endl;
         for (i = 0; i < (int)solution.size(); ++i)
-            cerr << notation[solution[i]] << " ";
-        cerr << endl;
-        cout << solution.size() << endl;
+            cout << notation[solution[i]] << " ";
+        cout << endl;
     }
     return 0;
 }

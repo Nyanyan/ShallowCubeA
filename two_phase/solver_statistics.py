@@ -23,7 +23,9 @@ for t in trange(all_num):
 
     solver.stdin.write((' '.join([str(i) for i in state]) + '\n').encode('utf-8'))
     solver.stdin.flush()
-    ln = int(solver.stdout.readline())
+    solution = solver.stdout.readline().decode()
+    #print(solution)
+    ln = len(solution.split())
     #print(t, ln, state)
     if ln != 0:
         avg_ln += ln
